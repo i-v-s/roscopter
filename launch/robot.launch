@@ -24,7 +24,7 @@
 	</node> 
 
 
-	<node pkg="croc_Pose3D" type="croc_Pose3D" name="croc_Pose3D" output="screen">
+	<node pkg="croc_pose3d" type="croc_pose3d" name="croc_pose3d" output="screen">
 		<!-- Low Pass Filter factor for optic flow velocity estimation, less value means less -->
 		<param name="velocity_lpf_factor" value = "0.3"/> 
 		<!-- mode 0 - no handling 
@@ -140,15 +140,15 @@
 
   <!-- NAVIGATION STACK -->
  <!-- for params description see http://wiki.ros.org/navigation -->
-  <node name="map_server" pkg="map_server" type="map_server" args="/home/mike/ros/robot/launch/map.yaml" /> 
+  <node name="map_server" pkg="map_server" type="map_server" args="~/roscopter/launch/map.yaml" /> 
   <node pkg="tf" type="static_transform_publisher" name="world_to_map" 
     args="0.0 0.0 0.0 0.0 0.0 0.0 /world /map 10" />
   <node pkg="move_base" type="move_base" respawn="false" name="move_base" output="screen" launch-prefix="xterm -e">
-    <rosparam file="/home/mike/ros/robot/launch/costmap_common_params.yaml" command="load" ns="global_costmap" />
-    <rosparam file="/home/mike/ros/robot/launch/costmap_common_params.yaml" command="load" ns="local_costmap" /> 
-    <rosparam file="/home/mike/ros/robot/launch/local_costmap_params.yaml" command="load" /> 
-    <rosparam file="/home/mike/ros/robot/launch/global_costmap_params.yaml" command="load" />
-    <rosparam file="/home/mike/ros/robot/launch/base_local_planner_params.yaml" command="load" />
+    <rosparam file="costmap_common_params.yaml" command="load" ns="global_costmap" />
+    <rosparam file="costmap_common_params.yaml" command="load" ns="local_costmap" /> 
+    <rosparam file="local_costmap_params.yaml" command="load" /> 
+    <rosparam file="global_costmap_params.yaml" command="load" />
+    <rosparam file="base_local_planner_params.yaml" command="load" />
     <param name="planner_patience" value="5"/>
     <param name="controller_patience" value="5"/>
     <param name="conservative_reset_dist" value="30"/>

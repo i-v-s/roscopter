@@ -26,7 +26,7 @@ int main(int argc, char**argv)
     ros::NodeHandle n;
 
     // publishers
-    pub = n.advertise<croc_Pose3D::Pose3D>("Pose3D", 100);
+    pub = n.advertise<croc_pose3d::Pose3D>("Pose3D", 100);
     odom_pub = n.advertise<nav_msgs::Odometry>("odom", 50);
 
     // subscribers

@@ -1,7 +1,7 @@
 #include "ros/ros.h"
 #include "sensor_msgs/Range.h"
 #include "geometry_msgs/Pose2D.h"
-#include "croc_Pose3D/Pose3D.h"
+#include "croc_pose3d/Pose3D.h"
 #include "OpticalFlow.h"
 #include "cyphy_serial_driver/mikoImu.h" 
 #include "tf/transform_broadcaster.h"
@@ -47,7 +47,7 @@ double velocity_lpf_factor;
 
 ros::Time of_last_time;          // time for flow position integration
 
-croc_Pose3D::Pose3D msg;            // croc_Pose3D current node published message
+croc_pose3d::Pose3D msg;            // croc_Pose3D current node published message
 
 
 void calculateLinearZVelocity(ros::Time stamp);     // calculate z-velocity based on sonar data
