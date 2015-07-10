@@ -1,0 +1,23 @@
+<package>
+  <name>cyphy_serial_driver</name>
+  <description>
+cyphy serial driver for mikrokopter.
+Simple test.
+  </description>
+  <version>0.0.0</version>
+  <author>Inkyu Sa</author>
+  <license>GPL</license>
+  <maintainer email="unknown@unknown.com">Inkyu Sa</maintainer>
+  <!--<review status="experimental" notes="This is unstable and under active development."/>-->
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <build_depend>roscpp</build_depend>
+  <build_depend>sensor_msgs</build_depend>
+  <build_depend>control_toolbox</build_depend>
+
+  <run_depend>roscpp</run_depend>
+  <run_depend>sensor_msgs</run_depend>
+  <run_depend>control_toolbox</run_depend>
+
+</package>

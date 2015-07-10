@@ -1,0 +1,20 @@
+<package>
+  <name>croc_log</name>
+  <version>0.0.0</version>
+  <description>
+	Read from different topics and put it to csv-file for futher investigations
+  </description>
+  <maintainer email="smirnoviv@rambler.ru">Igor Smirnov</maintainer>
+  <author>Mike Charikov</author>
+  <license>BSD</license>
+  <url>http://ros.org/wiki/croc_log</url>
+  <run_depend>roscpp</run_depend>
+  <run_depend>croc_Pose3D</run_depend>
+  <run_depend>croc_command</run_depend>
+  <run_depend>cyphy_serial_driver</run_depend>
+  <run_depend>px_comm"</run_depend>
+
+
+</package>
+
+
