@@ -41,10 +41,10 @@ using namespace std;
 int main (int argc, char *argv[])
 {
     // Set name of node
-    ros::init(argc, argv, "DetectingMark3");
+    ros::init(argc, argv, "DetectingMark3"); // Аргументы и имя узла
 
     // Create ros::NodeHandle after ros::init to interact with ROS
-    ros::NodeHandle nn("~");
+    ros::NodeHandle nn("~"); // Интерфейс roscpp для создания подписчиков, публикаторов и пр.
 
     // Create instance, init with ROS node handle
     DetectingMark DM(nn);

@@ -232,7 +232,7 @@
     <param name="ROIh" value="190" />
 
     <!-- show video window -->
-    <param name="showVideo" value="false" />
+    <param name="showVideo" value="true" />
     <!-- Current max Log level to write to output: 0 - critical, 1 - warnings, 2 - info, 3 - debug -->
     <param name="logLevel" value="1" />
     <!-- Node cycle duration (not faster then), in Hz -->

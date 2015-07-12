@@ -1,0 +1,38 @@
+<package>
+  <name>croc_detecting_mark_3</name>
+  <version>0.0.0</version>
+  <description>
+
+      croc_detecting_mark v3
+      uses HSV colour model to filter ellipse targets
+
+  </description>
+  <author>RosMan, SProkhorov</author>
+  <maintainer email="unk@unk.com">RosMan, SProkhorov</maintainer>
+
+  <license>BSD</license>
+  <url>http://ros.org/wiki/croc_detecting_mark</url>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <build_depend>roslib</build_depend>
+  <build_depend>roscpp</build_depend>
+  <build_depend>std_msgs</build_depend>
+  <!--<build_depend package="opencv2"/>-->
+  <build_depend>sensor_msgs</build_depend>
+  <!--<build_depend package="cv_bridge"/>-->
+  <build_depend>image_transport</build_depend>
+  <build_depend>compressed_image_transport</build_depend> 
+
+  <run_depend>roslib</run_depend>
+  <run_depend>roscpp</run_depend>
+  <run_depend>std_msgs</run_depend>
+  <!--<build_depend package="opencv2"/>-->
+  <run_depend>sensor_msgs</run_depend>
+  <!--<build_depend package="cv_bridge"/>-->
+  <run_depend>image_transport</run_depend>
+  <run_depend>compressed_image_transport</run_depend> 
+
+</package>
+
+

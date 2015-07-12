@@ -49,7 +49,7 @@ public:
     {
 
         mLogLevel_ = LOG_LEVEL_INFO;
-        mRate_ = new ros::Rate(CYCLE_RATE);
+        mRate_ = new ros::Rate(CYCLE_RATE); // Класс, помогающий запускать циклы с заданной частотой
 
         /// 1) Read parameters from launch file
         getParams();
