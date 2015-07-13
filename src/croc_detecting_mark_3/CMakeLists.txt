@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(croc_detecting_mark_3)
 
+set(CMAKE_BUILD_TYPE Debug)
+
 find_package(catkin REQUIRED COMPONENTS
 	roscpp
 	message_generation
@@ -22,7 +24,7 @@ generate_messages()
 
 catkin_package(
 #    DEPENDS roscpp sensor_msgs control_toolbox
-#    CATKIN_DEPENDS # TODO
+    CATKIN_DEPENDS message_runtime
     INCLUDE_DIRS include
 #    LIBRARIES
 )
@@ -32,7 +34,7 @@ include_directories(${Boost_INCLUDE_DIRS}, ${catkin_INCLUDE_DIRS}, ${OpenCV2_INC
 
 #DetectingMark
 add_executable(croc_detecting_mark_3 src/main.cpp src/detecting_mark.cpp)
-
+add_dependencies(croc_detecting_mark_3 ${PROJECT_NAME}_generate_messages_cpp)
 #FIND_PACKAGE(Qt4)
 
 #INCLUDE(${QT_USE_FILE})
