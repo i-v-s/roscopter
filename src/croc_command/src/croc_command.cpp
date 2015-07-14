@@ -319,7 +319,7 @@ int main(int argc, char**argv)
 
 
 // Pose3D callback
-void poseCallback (const croc_Pose3D::Pose3DConstPtr& msg)
+void poseCallback (const croc_pose3d::Pose3DConstPtr& msg)
 {
 	currentPosition.z=msg->z;
     currentPosition.x=msg->x;

@@ -1,0 +1,30 @@
+<package>
+  <name>croc_calc_landing_field_pos</name>
+  <version>0.0.0</version>
+  <description>
+     Converting coordinates on picture to physical coordinates on floor
+  </description>
+  <author>Egor Bulychev</author>
+  <maintainer email="unk@unk.com">Egor Bulychev</maintainer>
+  <license>BSD</license>
+
+  <url>http://ros.org/wiki/croc_calc_landing_field_pos</url>
+
+  <!--<depend package="rospy"/>
+  <depend package="std_msgs"/>-->
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <build_depend>roscpp</build_depend>
+  <build_depend>croc_pose3d</build_depend>
+  <build_depend>sensor_msgs</build_depend>
+  <build_depend>geometry_msgs</build_depend>
+
+  <run_depend>roscpp</run_depend>
+  <run_depend>croc_pose3d</run_depend>
+  <run_depend>sensor_msgs</run_depend>
+  <run_depend>geometry_msgs</run_depend>
+
+</package>
+
+

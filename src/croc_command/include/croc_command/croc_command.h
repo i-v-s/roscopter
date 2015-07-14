@@ -4,7 +4,7 @@
 #include "croc_command/mikoCmd.h"
 #include "croc_command/PID.h"
 #include "croc_command/State.h"
-#include "croc_Pose3D/Pose3D.h"
+#include "croc_pose3d/Pose3D.h"
 #include "geometry_msgs/Pose2D.h"
 
 #include <control_toolbox/pid.h>
@@ -124,7 +124,7 @@ ros::Time last_time_post2d_stabilized;
 
 
 // Callback for subscriber of current Pose3D
-void poseCallback (const croc_Pose3D::Pose3DConstPtr& msg);
+void poseCallback (const croc_pose3d::Pose3DConstPtr& msg);
 
 // Callback for subscriber of robot state landing, taking off, etc)
 void stateCallback (const croc_command::StateConstPtr& msg);

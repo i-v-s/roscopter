@@ -1,5 +1,5 @@
 #include "ros/ros.h"
-#include "croc_Pose3D/Pose3D.h"
+#include "croc_pose3d/Pose3D.h"
 #include "geometry_msgs/Pose2D.h"
 #include "geometry_msgs/PoseStamped.h"
 #include "nav_msgs/Path.h"
@@ -32,7 +32,7 @@ ros::ServiceClient clearMapsSrvClient;
 
 nav_msgs::Path globalPath;          // global path
 geometry_msgs::PoseStamped globalGoal; // global goal
-croc_Pose3D::Pose3D currentPose;    // current Pose of robot
+croc_pose3d::Pose3D currentPose;    // current Pose of robot
 croc_command::State currentControlState;   // current control State of robot
 nav_msgs::GridCells obstacles;      // current costmap (obstacles)
 sensor_msgs::LaserScan scan;        // current lidar scan
@@ -66,7 +66,7 @@ bool wasClearMapInTheAir;   // flag: Costmap was once cleared, when quad was in 
 
 // callbacks
 void pathCallback (const nav_msgs::PathConstPtr msg);
-void poseCallback (const croc_Pose3D::Pose3DConstPtr msg);
+void poseCallback (const croc_pose3d::Pose3DConstPtr msg);
 void stateCallback (const croc_command::StateConstPtr msg);
 void goalCallback (const geometry_msgs::PoseStampedConstPtr msg);
 void costmapCallBack(const nav_msgs::GridCellsConstPtr msg);

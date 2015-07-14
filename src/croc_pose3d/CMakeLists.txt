@@ -7,8 +7,7 @@ find_package(catkin REQUIRED COMPONENTS
   sensor_msgs
   geometry_msgs
   cyphy_serial_driver
-  std_msgs
-  genmsg
+  tf
 )
 
 add_message_files(FILES
@@ -18,8 +17,8 @@ add_message_files(FILES
 generate_messages(DEPENDENCIES geometry_msgs std_msgs)
 
 catkin_package(
-  DEPENDS roscpp
-  CATKIN_DEPENDS roscpp cyphy_serial_driver
+  DEPENDS
+  CATKIN_DEPENDS roscpp sensor_msgs cyphy_serial_driver geometry_msgs tf
   INCLUDE_DIRS include
 #  LIBRARIES cyphy_serial_driver
 )
@@ -28,28 +27,11 @@ catkin_package(
 ## Build ##
 ###########
 
-## Specify additional locations of header files
-## Your package locations should be listed before other locations
-# include_directories(include)
-include_directories(include)
-include_directories(${Boost_INCLUDE_DIRS}, ${catkin_INCLUDE_DIRS})
+include_directories(include ${Boost_INCLUDE_DIRS} ${catkin_INCLUDE_DIRS})
 
-## Declare a cpp library
-# add_library(testpkg
-#   src/${PROJECT_NAME}/testpkg.cpp
-# )
-
-## Declare a cpp executable
 add_executable(croc_pose3d src/croc_Pose3D.cpp)
-
-## Add cmake target dependencies of the executable/library
-## as an example, message headers may need to be generated before nodes
-# add_dependencies(testpkg_node testpkg_generate_messages_cpp)
-
-## Specify libraries to link a library or executable target against
-target_link_libraries(croc_pose3d
-   ${catkin_LIBRARIES}
-)
+add_dependencies(croc_pose3d ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(croc_pose3d ${catkin_LIBRARIES})
 
 #############
 ## Install ##

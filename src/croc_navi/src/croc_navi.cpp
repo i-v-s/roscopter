@@ -466,7 +466,7 @@ void pathCallback (const nav_msgs::PathConstPtr msg)
     globalPath = *msg;
 }
 
-void poseCallback (const croc_Pose3D::Pose3DConstPtr msg)
+void poseCallback (const croc_pose3d::Pose3DConstPtr msg)
 {
 
     currentPose = *msg;

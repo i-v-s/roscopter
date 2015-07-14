@@ -20,7 +20,7 @@ purposes. Feel free to ask us any questions at robots@croc.ru .
 #include "std_msgs/Int32.h"
 #include "geometry_msgs/Pose2D.h"
 #include "geometry_msgs/Pose.h"
-#include "croc_Pose3D/Pose3D.h"
+#include "croc_pose3d/Pose3D.h"
 #include <deque>
 
 using namespace std;
@@ -97,7 +97,7 @@ geometry_msgs::Pose2D getAverageLandingPose(int n);
 
 
 // Quad current postion callback
-void callbackQuadPos(const croc_Pose3D::Pose3D& QuadPosition)
+void callbackQuadPos(const croc_pose3d::Pose3D& QuadPosition)
 {
     quadPosPrev.x = QuadPosition.x;
     quadPosPrev.y = QuadPosition.y;

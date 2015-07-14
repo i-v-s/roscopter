@@ -102,7 +102,7 @@ namespace miko
 
 	  Initialized=false;
 
-      ROS_ASSERT_MSG (dev_ != NULL, "Could not open serial port %s", serialport_name_.c_str ());
+      ROS_ASSERT_MSG (dev_ != 0, "Could not open serial port %s", serialport_name_.c_str ());
       ROS_INFO ("Successfully connected to %s, Baudrate %d\n", serialport_name_.c_str (), serialport_speed_);
   }
 

@@ -1,0 +1,27 @@
+<package>
+  <name>croc_navi</name>
+  <version>0.0.0</version>
+  <description>
+
+     croc_navi
+
+  </description>
+  <author>Mike Charikov</author>
+  <maintainer email="unk@unk.com">Mike Charikov</maintainer>
+  
+  <license>BSD</license>
+  <url>http://ros.org/wiki/croc_navi</url>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <build_depend>roscpp</build_depend>
+  <build_depend>croc_pose3d</build_depend>
+  <build_depend>croc_command</build_depend>
+
+  <run_depend>roscpp</run_depend>
+  <run_depend>croc_pose3d</run_depend>
+  <run_depend>croc_command</run_depend>
+
+</package>
+
+

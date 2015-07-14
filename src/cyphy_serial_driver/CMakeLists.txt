@@ -10,6 +10,10 @@ find_package(catkin REQUIRED COMPONENTS
   genmsg
 )
 
+###############
+## Pre Build ##
+###############
+
 add_message_files(FILES
   mikoCmd.msg
   mikoImu.msg
@@ -17,21 +21,24 @@ add_message_files(FILES
 
 generate_messages(DEPENDENCIES geometry_msgs std_msgs)
 
+############
+## Export ##
+############
+
 catkin_package(
-    DEPENDS roscpp sensor_msgs control_toolbox
-    CATKIN_DEPENDS # TODO
+    CATKIN_DEPENDS roscpp sensor_msgs control_toolbox
     INCLUDE_DIRS include
-    LIBRARIES libMikoControl
 )
+
+###########
+## Build ##
+###########
+
 include_directories(include)
 include_directories(${Boost_INCLUDE_DIRS}, ${catkin_INCLUDE_DIRS})
 
-add_executable(MikoControl 
-  src/flightcontrol.cpp
-	src/serial_interface.cpp 
-)
-
-add_library(${PROJECT_NAME} )
+add_executable(MikoControl src/flightcontrol.cpp src/serial_interface.cpp)
+add_dependencies(MikoControl ${PROJECT_NAME}_generate_messages_cpp)
 
 target_link_libraries(MikoControl ${catkin_LIBRARIES})
 
@@ -45,10 +52,10 @@ target_link_libraries(MikoControl ${catkin_LIBRARIES})
 
 ## Mark executable scripts (Python etc.) for installation
 ## in contrast to setup.py, you can choose the destination
-install(PROGRAMS
+#install(PROGRAMS
 #   scripts/my_python_script
-  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-)
+#  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+#)
 
 ## Mark executables and/or libraries for installation
 # install(TARGETS testpkg testpkg_node

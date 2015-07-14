@@ -4,16 +4,24 @@
   <description>
 	Read from different topics and put it to csv-file for futher investigations
   </description>
-  <maintainer email="smirnoviv@rambler.ru">Igor Smirnov</maintainer>
+  <maintainer email="unk@unk.com">Mike Charikov</maintainer>
   <author>Mike Charikov</author>
   <license>BSD</license>
   <url>http://ros.org/wiki/croc_log</url>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <build_depend>roscpp</build_depend>
+  <build_depend>croc_pose3d</build_depend>
+  <build_depend>croc_command</build_depend>
+  <build_depend>cyphy_serial_driver</build_depend>
+  <build_depend>px_comm</build_depend>
+
   <run_depend>roscpp</run_depend>
-  <run_depend>croc_Pose3D</run_depend>
+  <run_depend>croc_pose3d</run_depend>
   <run_depend>croc_command</run_depend>
   <run_depend>cyphy_serial_driver</run_depend>
-  <run_depend>px_comm"</run_depend>
-
+  <run_depend>px_comm</run_depend>
 
 </package>
 

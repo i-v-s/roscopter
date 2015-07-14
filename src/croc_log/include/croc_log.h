@@ -3,7 +3,7 @@
 
 #include "ros/ros.h"
 #include <croc_command/PID.h>
-#include <croc_Pose3D/Pose3D.h>
+#include <croc_pose3d/Pose3D.h>
 #include <cyphy_serial_driver/mikoImu.h>
 #include <cyphy_serial_driver/mikoCmd.h>
 #include "sensor_msgs/Range.h"
@@ -29,7 +29,7 @@ FILE *logFile;
 std::string filename;
 
 // logged messages 
-croc_Pose3D::Pose3D pose3DMsg;
+croc_pose3d::Pose3D pose3DMsg;
 cyphy_serial_driver::mikoImu mikoImuMsg;
 cyphy_serial_driver::mikoCmd mikoCmdMsg;
 croc_command::PID PIDHeightMsg;
@@ -45,7 +45,7 @@ geometry_msgs::Pose2D localGoalMsg;
 double x_dif_vel;
 double y_dif_vel;
 ros::Time last_dif_time;
-croc_Pose3D::Pose3D last_pose;
+croc_pose3d::Pose3D last_pose;
 
 // speed integration variables
 double x_int;
@@ -54,7 +54,7 @@ ros::Time last_int_time;
 
 
 // callbacks
-void poseCallback (const croc_Pose3D::Pose3DConstPtr& msg);
+void poseCallback (const croc_pose3d::Pose3DConstPtr& msg);
 void mikoImuCallback (const cyphy_serial_driver::mikoImuConstPtr& msg);
 void mikoCmdCallback (const cyphy_serial_driver::mikoCmdConstPtr& msg);
 void PIDHeightCallback (const croc_command::PIDConstPtr& msg);
