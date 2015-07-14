@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(croc_calc_landing_field_pos)
+project(croc_calc_landing_pos)
 
 find_package(catkin REQUIRED COMPONENTS
 	roscpp

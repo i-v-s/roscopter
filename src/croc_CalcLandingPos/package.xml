@@ -1,5 +1,5 @@
 <package>
-  <name>croc_calc_landing_field_pos</name>
+  <name>croc_calc_landing_pos</name>
   <version>0.0.0</version>
   <description>
      Converting coordinates on picture to physical coordinates on floor

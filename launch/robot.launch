@@ -140,7 +140,7 @@
 
   <!-- NAVIGATION STACK -->
  <!-- for params description see http://wiki.ros.org/navigation -->
-  <node name="map_server" pkg="map_server" type="map_server" args="~/roscopter/launch/map.yaml" /> 
+  <node name="map_server" pkg="map_server" type="map_server" args="map.yaml" /> 
   <node pkg="tf" type="static_transform_publisher" name="world_to_map" 
     args="0.0 0.0 0.0 0.0 0.0 0.0 /world /map 10" />
   <node pkg="move_base" type="move_base" respawn="false" name="move_base" output="screen" launch-prefix="xterm -e">
@@ -182,10 +182,10 @@
 	<param name="range_width" value="9"/>
  </node>
 
-  <node pkg="croc_CalcLandingPos" type = "croc_CalcLandingPos" name = "croc_CalcLandingPos">
-	<!-- camerea horizontal resolution in pixels -->
+  <node pkg="croc_calc_landing_pos" type = "croc_CalcLandingPos" name = "croc_CalcLandingPos">
+	<!-- camera horizontal resolution in pixels -->
     <param name="camHorRes" value="640" />
-	<!-- camerea vertical resolution in pixels -->
+	<!-- camera vertical resolution in pixels -->
     <param name="camVerRes" value="480" />
 	<!-- Camera horizontal field of view (radians) -->
 	<param name="camHorAngle" value="1.8007"/>
@@ -199,7 +199,7 @@
 
 
  <node pkg="croc_detecting_mark_3" type="croc_detecting_mark_3"
-        name="croc_detecting_mark" output="screen" respawn="true">
+        name="croc_detecting_mark" output="screen" respawn="false">
     <param name="frameWidth" value="640" />
     <param name="frameHeight" value="480" />
 
