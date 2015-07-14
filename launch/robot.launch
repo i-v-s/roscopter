@@ -12,7 +12,7 @@
  
 
 	<!-- for params description see http://www.ros.org/wiki/px4flow_node‎ -->
-    <node name="px4flow" pkg="px4flow_node" type="px4flow_node" respawn="true">
+    <node name="px4flow" pkg="px4flow" type="px4flow_node" respawn="false">
 		<param name="serial_port" value="/dev/ttyACM0"/>
 		<param name="baudrate" value="921600"/>
 	</node>
