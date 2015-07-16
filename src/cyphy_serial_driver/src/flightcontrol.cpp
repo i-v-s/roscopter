@@ -29,8 +29,8 @@ ros::WallTimer walltimer;
 
 unsigned char g_buf[300];
 unsigned char g_buf_debug[300];
-unsigned char g_txd_buffer[TXD_BUFFER_LEN];
-unsigned char g_rxd_buffer[RXD_BUFFER_LEN];
+//unsigned char g_txd_buffer[TXD_BUFFER_LEN];
+//unsigned char g_rxd_buffer[RXD_BUFFER_LEN];
 unsigned char g_ReceivedBytes;
 unsigned char *g_pRxData;
 unsigned char g_RxDataLen;
@@ -43,16 +43,14 @@ DebugOut_t g_DebugData,g_DebugData_Temp;
 int main(int argc, char **argv)
 {
    ros::init(argc, argv, "flightcontrol");
-   miko::FlightControl flightcontrol;
+   FlightControl flightcontrol;
    
    ros::spin();
    return 0;
 }
 
-namespace miko
+FlightControl::FlightControl()
 {
-  FlightControl::FlightControl()
-  {
 	ROS_INFO ("Creating FlightControl Interface");
 	ros::NodeHandle nh;
 	
@@ -62,7 +60,7 @@ namespace miko
 	mikoCmdSubscriber = nh.subscribe("c_command", 100, &FlightControl::mikoCmdCallback, this);
 
     // parameter Setting
-    if (!nh.getParam("/MikoControl/device", port_)) port_ = "/dev/ttyUSB1";
+    if (!nh.getParam("/MikoControl/device", port_)) port_ = "/dev/ttyUSB0";
     if (!nh.getParam("/MikoControl/baud", speed_)) speed_ = 57600;
     if (!nh.getParam("/MikoControl/frequency", freq_)) freq_ = 50.0;
 
@@ -93,25 +91,132 @@ namespace miko
 	g_RxDataLen=0;
 		
     	// **** set up intefaces
-    serialInterface_ = new miko::SerialInterface(port_, speed_);
+    serialInterface_ = new MKSerialInterface(port_, speed_);
 	serialInterface_->serialport_bytes_rx_ = 0;
 	serialInterface_->serialport_bytes_tx_ = 0;
 
 
 	timer= nh.createTimer(ros::Duration(0.020), &FlightControl::spin,this);  //50ms timer 20Hz
 	ROS_INFO ("Serial setup finished");
-  }
+}
   
 
-  FlightControl::~FlightControl()
-  {
-    
+FlightControl::~FlightControl()
+{
     ROS_INFO ("Destroying FlightControl Interface");
-  }
+}
+
+void FlightControl::publishData(const DebugOut_t &data)
+{
+    //=================================================================
+    // Coordinate and unit conversion from Mikrokopter to Cyphy model.
+    //=================================================================
+
+    // Put negative(minus) all angles to covert all axies into a right hand coordinate.
+    // Please have a look MK Coordinate system V1.0 documentation in order to understand coordinate systems.
+
+    MyAttitude.AnglePitch = -DEG_TO_RAD(data.Analog[ANGLE_PITCH]/10.);
+    MyAttitude.AngleRoll = -DEG_TO_RAD(data.Analog[ANGLE_ROLL]/10.);
+
+    // To make IMU Yaw coordinate same as Laser Yaw coordinate.
+    if(data.Analog[ANGLE_YAW]>=180)
+        MyAttitude.AngleYaw = (double)(data.Analog[ANGLE_YAW]-360.);
+    else
+        MyAttitude.AngleYaw = (double)data.Analog[ANGLE_YAW];
+
+    MyAttitude.AngleYaw = DEG_TO_RAD(MyAttitude.AngleYaw);
+
+    // Normalize Acceleration data as 1G.
+    // Please have a look MK Coordinate system V1.0 documentation in order to understand coordinate systems.
+    MyAttitude.ACCX = -(data.Analog[ACC_X]/606.)*C_g;
+    MyAttitude.ACCY = (data.Analog[ACC_Y]/603.)*C_g;
+    //MyAttitude.ACCZ = (g_DebugData.Analog[ACC_Z_FILTER]/15.5); // m/s^2
+    MyAttitude.ACCZ = (data.Analog[ACC_Z_ADC]/15.5); // m/s^2
+
+    //
+    //	The unit of angle is radian and m/s^2 for acceleration (not g)
+    //
+    mikoImu.anglePitch = MyAttitude.AnglePitch;
+    mikoImu.angleRoll = MyAttitude.AngleRoll;
+    mikoImu.angleYaw = MyAttitude.AngleYaw;
+    mikoImu.linear_acceleration.x = MyAttitude.ACCX;
+    mikoImu.linear_acceleration.y = MyAttitude.ACCY;
+    mikoImu.linear_acceleration.z = MyAttitude.ACCZ;
+    mikoImu.stick_throttle = data.Analog[GAS];
+    mikoImu.barome_height = data.Analog[HEIGHT];
+
+    stdImuMsg.linear_acceleration.x=MyAttitude.ACCX;
+    stdImuMsg.linear_acceleration.y=MyAttitude.ACCY;
+    stdImuMsg.linear_acceleration.z=MyAttitude.ACCZ;
+
+    tfImuQuaternion = tf::createQuaternionFromRPY(MyAttitude.AngleRoll, MyAttitude.AnglePitch, MyAttitude.AngleYaw);
+    tf::quaternionTFToMsg(tfImuQuaternion, geometryImuQuaternion);
+
+    stdImuMsg.orientation = geometryImuQuaternion;
+    stdImuMsg.angular_velocity_covariance[0]=-1;
+    stdImuMsg.linear_acceleration_covariance[0]=-1;
+
+    if(data.Analog[BATT] < BATT_MAX) mikoImu.batt = data.Analog[BATT];
 
 
-  void FlightControl::spin(const ros::TimerEvent & e)
-  {
+    for (int i=0; i<32; i++) mikoImu.debugData[i] = data.Analog[i];
+
+    pub.publish(mikoImu);
+    pub_stdImu.publish(stdImuMsg);
+}
+
+void FlightControl::onReceive(char id, void * data, int size)
+{
+    switch(id)
+    {
+    case 'C'://67: //Set 3D-Data Interval
+        memcpy(&g_Data3D, (uint8_t*)g_pRxData, sizeof(g_Data3D));
+        break;
+    case 'D'://68: // Debug Request
+        if(size < sizeof(DebugOut_t))
+        {
+            ROS_WARN("Debug packet with wrong size");
+            return;
+        }
+        else
+        {
+            DebugOut_t &dd = *(DebugOut_t *) data;
+
+            if(
+                abs(dd.Analog[ANGLE_PITCH]) > 1000 ||
+                abs(dd.Analog[ANGLE_ROLL])  > 1000 ||
+                abs(dd.Analog[ANGLE_YAW])   > 1000 ||
+                abs(dd.Analog[ACC_X])       >  700 ||
+                abs(dd.Analog[ACC_Y])       >  700 ||
+                abs(dd.Analog[ACC_Z_ADC])   >  700
+            )
+            {
+                ROS_INFO("Wrong packet received: %d %d %d %d %d %d ", g_DebugData_Temp.Analog[ANGLE_PITCH],
+                                                  g_DebugData_Temp.Analog[ANGLE_ROLL],
+                                                  g_DebugData_Temp.Analog[ANGLE_YAW],
+                                                  g_DebugData_Temp.Analog[ACC_X],
+                                                  g_DebugData_Temp.Analog[ACC_Y],
+                                                  g_DebugData_Temp.Analog[ACC_Z_ADC]);
+
+            }
+            else
+            {
+                g_DebugData = g_DebugData_Temp;
+                ROS_INFO("Good packet received: %d %d %d %d %d %d ", g_DebugData_Temp.Analog[ANGLE_PITCH],
+                                                  g_DebugData_Temp.Analog[ANGLE_ROLL],
+                                                  g_DebugData_Temp.Analog[ANGLE_YAW],
+                                                  g_DebugData_Temp.Analog[ACC_X],
+                                                  g_DebugData_Temp.Analog[ACC_Y],
+                                                  g_DebugData_Temp.Analog[ACC_Z_ADC]);
+                break;
+            }
+        }
+    }
+}
+
+
+void FlightControl::spin(const ros::TimerEvent & e)
+{
 	int nLength=0;
 	uint8_t interval=5;
 	
@@ -119,71 +224,12 @@ namespace miko
 	mikoImu.header.stamp = ros::Time::now();
 
 	//ros::WallDuration(0.01).sleep(); // 10ms delay
-	nLength=serialInterface_->getdata(g_rxd_buffer, 255);
+    serialInterface_->read();
 	
 	if(nLength>0)
 	{
 
-                serialInterface_->Decode64();
-		serialInterface_->ParsingData();
-             
-		//=================================================================
-		// Coordinate and unit conversion from Mikrokopter to Cyphy model.
-		//=================================================================
-
-		// Put negative(minus) all angles to covert all axies into a right hand coordinate.
-		// Please have a look MK Coordinate system V1.0 documentation in order to understand coordinate systems.
-		
-		MyAttitude.AnglePitch = -DEG_TO_RAD(g_DebugData.Analog[ANGLE_PITCH]/10.);
-		MyAttitude.AngleRoll = -DEG_TO_RAD(g_DebugData.Analog[ANGLE_ROLL]/10.);
-
-		// To make IMU Yaw coordinate same as Laser Yaw coordinate.
-		if(g_DebugData.Analog[ANGLE_YAW]>=180) 
-			MyAttitude.AngleYaw = (double)(g_DebugData.Analog[ANGLE_YAW]-360.);
-		else 
-			MyAttitude.AngleYaw = (double)g_DebugData.Analog[ANGLE_YAW];
-
-		MyAttitude.AngleYaw = DEG_TO_RAD(MyAttitude.AngleYaw);
-
-		// Normalize Acceleration data as 1G.
-		// Please have a look MK Coordinate system V1.0 documentation in order to understand coordinate systems.
-		MyAttitude.ACCX = -(g_DebugData.Analog[ACC_X]/606.)*g;
-		MyAttitude.ACCY = (g_DebugData.Analog[ACC_Y]/603.)*g;
-		//MyAttitude.ACCZ = (g_DebugData.Analog[ACC_Z_FILTER]/15.5); // m/s^2
-		MyAttitude.ACCZ = (g_DebugData.Analog[ACC_Z_ADC]/15.5); // m/s^2
-
-		//
-		//	The unit of angle is radian and m/s^2 for acceleration (not g)
-		//
-		mikoImu.anglePitch = MyAttitude.AnglePitch; 
-		mikoImu.angleRoll = MyAttitude.AngleRoll;
-		mikoImu.angleYaw = MyAttitude.AngleYaw;
-		mikoImu.linear_acceleration.x = MyAttitude.ACCX;
-		mikoImu.linear_acceleration.y = MyAttitude.ACCY;
-		mikoImu.linear_acceleration.z = MyAttitude.ACCZ;
-		mikoImu.stick_throttle = g_DebugData.Analog[GAS];
-		mikoImu.barome_height = g_DebugData.Analog[HEIGHT];
-
-        stdImuMsg.linear_acceleration.x=MyAttitude.ACCX;
-        stdImuMsg.linear_acceleration.y=MyAttitude.ACCY;
-        stdImuMsg.linear_acceleration.z=MyAttitude.ACCZ;
-
-        tfImuQuaternion = tf::createQuaternionFromRPY(MyAttitude.AngleRoll, MyAttitude.AnglePitch, MyAttitude.AngleYaw);
-        tf::quaternionTFToMsg(tfImuQuaternion, geometryImuQuaternion);
-
-        stdImuMsg.orientation = geometryImuQuaternion;
-        stdImuMsg.angular_velocity_covariance[0]=-1;
-        stdImuMsg.linear_acceleration_covariance[0]=-1;
-
-		if(g_DebugData.Analog[BATT]<BATT_MAX) mikoImu.batt = g_DebugData.Analog[BATT];
-
-
-		for (int i=0; i<32; i++) mikoImu.debugData[i]=g_DebugData.Analog[i];
-
-
-
-		pub.publish(mikoImu);
-        pub_stdImu.publish(stdImuMsg);
+        //serialInterface_->Decode64();
 	}
 else
 	ROS_INFO("crc bad!");
@@ -301,4 +347,3 @@ else
 		 SendOutData('b', FC_ADDRESS, 1, (uint8_t*)&ExternControl, sizeof(ExternControl));
 		 		
 	}
-} // namespace miko

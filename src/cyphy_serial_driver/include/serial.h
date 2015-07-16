@@ -42,10 +42,10 @@
 
 //#include "crc16.h"
 //#include "telemetry.h"
-#include "flightcontrol.h"
+#include "mkstruct.h"
 
-#define TXD_BUFFER_LEN  300
-#define RXD_BUFFER_LEN  300
+#include <map>
+
 #define MAX_PITCH_THRESHOLD 360
 #define MAX_ROLL_THRESHOLD 360
 #define MAX_YAW_THRESHOLD 360
@@ -53,23 +53,24 @@
 #define MAX_ACC_THRESHOLD 400
 //#define FC_DEBUG
 
-namespace miko
+class MKDevice
 {
-  class SerialInterface
-  {
-  public:
-    SerialInterface (std::string port, uint32_t speed);
-    ~SerialInterface ();
+protected:
+    virtual void onReceive(char id, void * data, int size) = 0;
+};
 
-    void output (char *output, int len);
-    void output (unsigned char *output, int len);
-   // bool getPackets (Telemetry *telemetry);
-    void Decode64(void);
+class MKSerialInterface
+{
+public:
+    MKSerialInterface(std::string port, uint32_t speed);
+    virtual ~MKSerialInterface();
+
+    void output(char *output, int len);
+    void output(unsigned char *output, int len);
+    static int Decode64(uint8_t * data, uint8_t * end);
     void ParsingData(void);
-   // void sendControl (Telemetry *telemetry);
     void dumpDebug (void);
-    int getdata (unsigned char *buf, int len);
- //   bool getPacket (char *spacket, unsigned char &packet_type, unsigned short &packet_crc, unsigned short &packet_size);
+    void read();
 
     uint32_t serialport_bytes_rx_;
     uint32_t serialport_bytes_tx_;
@@ -78,12 +79,13 @@ namespace miko
     int pt[800];
     int counter;
 
-
     bool Initialized;
     int count;
-
- private:
-	  speed_t bitrate (int);
+    std::map<char, MKDevice *> mDevices;
+private:
+    uint8_t mFrame[128], * mFramePos;
+    int mCRC;
+    speed_t bitrate(int);
     void flush ();
     void drain ();
     void stall (bool);
@@ -94,5 +96,4 @@ namespace miko
     uint32_t serialport_speed_;
     speed_t serialport_baud_;
   };
-}
 #endif

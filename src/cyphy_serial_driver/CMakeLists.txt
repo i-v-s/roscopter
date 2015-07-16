@@ -34,10 +34,9 @@ catkin_package(
 ## Build ##
 ###########
 
-include_directories(include)
-include_directories(${Boost_INCLUDE_DIRS}, ${catkin_INCLUDE_DIRS})
+include_directories(include ${catkin_INCLUDE_DIRS})
 
-add_executable(MikoControl src/flightcontrol.cpp src/serial_interface.cpp)
+add_executable(MikoControl src/flightcontrol.cpp src/serial.cpp include/flightcontrol.h include/serial.h include/mkstruct.h)
 add_dependencies(MikoControl ${PROJECT_NAME}_generate_messages_cpp)
 
 target_link_libraries(MikoControl ${catkin_LIBRARIES})
@@ -58,11 +57,11 @@ target_link_libraries(MikoControl ${catkin_LIBRARIES})
 #)
 
 ## Mark executables and/or libraries for installation
-# install(TARGETS testpkg testpkg_node
+ install(TARGETS MikoControl
 #   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
 #   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-#   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-# )
+   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+ )
 
 ## Mark cpp header files for installation
 # install(DIRECTORY include/${PROJECT_NAME}/
