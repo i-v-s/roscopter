@@ -22,51 +22,47 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "serial.h"
 #include "flightcontrol.h"
-
-ros::Timer timer;
-ros::WallTimer walltimer;
-
-unsigned char g_buf[300];
-unsigned char g_buf_debug[300];
-//unsigned char g_txd_buffer[TXD_BUFFER_LEN];
-//unsigned char g_rxd_buffer[RXD_BUFFER_LEN];
-unsigned char g_ReceivedBytes;
-unsigned char *g_pRxData;
-unsigned char g_RxDataLen;
-
-
-struct str_Data3D g_Data3D,g_Data3D_Temp;
-
-DebugOut_t g_DebugData,g_DebugData_Temp;
 
 int main(int argc, char **argv)
 {
-   ros::init(argc, argv, "flightcontrol");
-   FlightControl flightcontrol;
-   
-   ros::spin();
-   return 0;
+    ros::init(argc, argv, "flightcontrol");
+    ros::NodeHandle nh;
+
+    double freq;
+    std::string port;
+    int speed;
+    if(!nh.getParam("/MikoControl/device", port)) port = "/dev/ttyUSB0";
+    if(!nh.getParam("/MikoControl/baud", speed)) speed = 57600;
+    if(!nh.getParam("/MikoControl/frequency", freq)) freq = 50.0;
+    if (freq <= 0.0) ROS_FATAL ("Invalid frequency param");
+
+    MKSerialInterface serial(port, speed);
+    FlightControl flightcontrol(nh, &serial);
+
+    ros::Rate rate(freq);
+
+    while(ros::ok())
+    {
+        serial.receive();
+        flightcontrol.spin();
+        ros::spinOnce();
+        rate.sleep();
+    }
+    return 0;
 }
 
-FlightControl::FlightControl()
+FlightControl::FlightControl(ros::NodeHandle &nh, MKSerialInterface * serial): mSerial(serial)
 {
+    serial->mDevices.insert(std::make_pair(FC_ADDRESS, this));
+
 	ROS_INFO ("Creating FlightControl Interface");
-	ros::NodeHandle nh;
 	
-	pub = nh.advertise<cyphy_serial_driver::mikoImu>("mikoImu", 100);
-    pub_stdImu = nh.advertise<sensor_msgs::Imu>("imu/data", 100);
+    mPub = nh.advertise<cyphy_serial_driver::mikoImu>("mikoImu", 100);
+    mPub_stdImu = nh.advertise<sensor_msgs::Imu>("imu/data", 100);
 
 	mikoCmdSubscriber = nh.subscribe("c_command", 100, &FlightControl::mikoCmdCallback, this);
-
-    // parameter Setting
-    if (!nh.getParam("/MikoControl/device", port_)) port_ = "/dev/ttyUSB0";
-    if (!nh.getParam("/MikoControl/baud", speed_)) speed_ = 57600;
-    if (!nh.getParam("/MikoControl/frequency", freq_)) freq_ = 50.0;
-
-
-    if (freq_ <= 0.0) ROS_FATAL ("Invalid frequency param");
-	ros::Duration d (1.0 / freq_);
 
 	// Reference input initialization
 	ExternControl.Digital[0] =0;
@@ -82,22 +78,7 @@ FlightControl::FlightControl()
 	ExternControl.Config =1;
 	Throttle_Direction=true;
 
-	g_DebugData.Digital[0]=0;
-	g_DebugData.Digital[1]=0;
-	for(int i=0;i<32;i++) g_DebugData.Analog[i]=0;
-
-	g_ReceivedBytes=0;
-	g_pRxData=0;
-	g_RxDataLen=0;
-		
-    	// **** set up intefaces
-    serialInterface_ = new MKSerialInterface(port_, speed_);
-	serialInterface_->serialport_bytes_rx_ = 0;
-	serialInterface_->serialport_bytes_tx_ = 0;
-
-
-	timer= nh.createTimer(ros::Duration(0.020), &FlightControl::spin,this);  //50ms timer 20Hz
-	ROS_INFO ("Serial setup finished");
+    memset(&mDebugData, 0, sizeof(mDebugData));
 }
   
 
@@ -161,8 +142,8 @@ void FlightControl::publishData(const DebugOut_t &data)
 
     for (int i=0; i<32; i++) mikoImu.debugData[i] = data.Analog[i];
 
-    pub.publish(mikoImu);
-    pub_stdImu.publish(stdImuMsg);
+    mPub.publish(mikoImu);
+    mPub_stdImu.publish(stdImuMsg);
 }
 
 void FlightControl::onReceive(char id, void * data, int size)
@@ -170,7 +151,10 @@ void FlightControl::onReceive(char id, void * data, int size)
     switch(id)
     {
     case 'C'://67: //Set 3D-Data Interval
-        memcpy(&g_Data3D, (uint8_t*)g_pRxData, sizeof(g_Data3D));
+        if(size < sizeof(mData3D))
+            ROS_WARN("3D-Data packet with wrong size");
+        else
+            memcpy(&mData3D, data, sizeof(mData3D));
         break;
     case 'D'://68: // Debug Request
         if(size < sizeof(DebugOut_t))
@@ -191,23 +175,24 @@ void FlightControl::onReceive(char id, void * data, int size)
                 abs(dd.Analog[ACC_Z_ADC])   >  700
             )
             {
-                ROS_INFO("Wrong packet received: %d %d %d %d %d %d ", g_DebugData_Temp.Analog[ANGLE_PITCH],
-                                                  g_DebugData_Temp.Analog[ANGLE_ROLL],
-                                                  g_DebugData_Temp.Analog[ANGLE_YAW],
-                                                  g_DebugData_Temp.Analog[ACC_X],
-                                                  g_DebugData_Temp.Analog[ACC_Y],
-                                                  g_DebugData_Temp.Analog[ACC_Z_ADC]);
-
+                ROS_INFO("Wrong packet received: %d %d %d %d %d %d ",
+                         dd.Analog[ANGLE_PITCH],
+                         dd.Analog[ANGLE_ROLL],
+                         dd.Analog[ANGLE_YAW],
+                         dd.Analog[ACC_X],
+                         dd.Analog[ACC_Y],
+                         dd.Analog[ACC_Z_ADC]);
             }
             else
             {
-                g_DebugData = g_DebugData_Temp;
-                ROS_INFO("Good packet received: %d %d %d %d %d %d ", g_DebugData_Temp.Analog[ANGLE_PITCH],
-                                                  g_DebugData_Temp.Analog[ANGLE_ROLL],
-                                                  g_DebugData_Temp.Analog[ANGLE_YAW],
-                                                  g_DebugData_Temp.Analog[ACC_X],
-                                                  g_DebugData_Temp.Analog[ACC_Y],
-                                                  g_DebugData_Temp.Analog[ACC_Z_ADC]);
+                mDebugData = dd;
+                ROS_INFO("Good packet received: %d %d %d %d %d %d ",
+                         dd.Analog[ANGLE_PITCH],
+                         dd.Analog[ANGLE_ROLL],
+                         dd.Analog[ANGLE_YAW],
+                         dd.Analog[ACC_X],
+                         dd.Analog[ACC_Y],
+                         dd.Analog[ACC_Z_ADC]);
                 break;
             }
         }
@@ -215,135 +200,36 @@ void FlightControl::onReceive(char id, void * data, int size)
 }
 
 
-void FlightControl::spin(const ros::TimerEvent & e)
+void FlightControl::spin()
 {
 	int nLength=0;
 	uint8_t interval=5;
 	
-	SendOutData('d', FC_ADDRESS, 1, &interval, sizeof(interval)); // Request debug data from FC
-	mikoImu.header.stamp = ros::Time::now();
-
-	//ros::WallDuration(0.01).sleep(); // 10ms delay
-    serialInterface_->read();
-	
-	if(nLength>0)
-	{
-
-        //serialInterface_->Decode64();
-	}
-else
-	ROS_INFO("crc bad!");
+    mSerial->transmit(FC_ADDRESS, 'd', &interval, sizeof(interval)); // Request debug data from FC
+    mikoImu.header.stamp = ros::Time::now();
 }
 
-  void FlightControl::SendOutData(uint8_t cmd, uint8_t addr, uint8_t numofbuffers, ...) // uint8_t *pdata, uint8_t len, ...
-  { 
-	va_list ap;
-	uint16_t pt = 0;
-	uint8_t a,b,c;
-	uint8_t ptr = 0;
 
-	uint8_t *pdata = 0;
-	int len = 0;
+void FlightControl::mikoCmdCallback(const cyphy_serial_driver::mikoCmd& msg)
+{
+    ExternControl.Pitch = msg.pitch;
+    ExternControl.Roll = msg.roll;
+    ExternControl.Yaw = msg.yaw;
+    ExternControl.Throttle = msg.throttle;
 
-	g_txd_buffer[pt++] = '#';			// Start character
-	g_txd_buffer[pt++] = 'a' + addr;	// Address (a=0; b=1,...)
-	g_txd_buffer[pt++] = cmd;			// Command
+    if(ExternControl.Pitch >=80) ExternControl.Pitch=80;
+    if(ExternControl.Pitch <=-80) ExternControl.Pitch=-80;
 
-		va_start(ap, numofbuffers);
-		if(numofbuffers)
-		{
-			pdata = va_arg(ap, uint8_t*);
-			len = va_arg(ap, int);
-			ptr = 0;
-			numofbuffers--;
-		}
+    if(ExternControl.Roll >=80) ExternControl.Roll=80;
+    if(ExternControl.Roll <=-80) ExternControl.Roll=-80;
 
-		while(len)
-		{
-			if(len)
-			{
-				a = pdata[ptr++];
-				len--;
-				if((!len) && numofbuffers)
-				{
-					pdata = va_arg(ap, uint8_t*);
-					len = va_arg(ap, int);
-					ptr = 0;
-					numofbuffers--;
-				}
-			}
-			else a = 0;
-			if(len)
-			{
-				b = pdata[ptr++];
-				len--;
-				if((!len) && numofbuffers)
-				{
-					pdata = va_arg(ap, uint8_t*);
-					len = va_arg(ap, int);
-					ptr = 0;
-					numofbuffers--;
-				}
-			}
-			else b = 0;
-			if(len)
-			{
-				c = pdata[ptr++];
-				len--;
-				if((!len) && numofbuffers)
-				{
-					pdata = va_arg(ap, uint8_t*);
-					len = va_arg(ap, int);
-					ptr = 0;
-					numofbuffers--;
-				}
-			}
-			else c = 0;
-			g_txd_buffer[pt++] = '=' + (a >> 2);
-			g_txd_buffer[pt++] = '=' + (((a & 0x03) << 4) | ((b & 0xf0) >> 4));
-			g_txd_buffer[pt++] = '=' + (((b & 0x0f) << 2) | ((c & 0xc0) >> 6));
-			g_txd_buffer[pt++] = '=' + ( c & 0x3f);
-		} //while
-		va_end(ap);
-		AddCRC(pt); // add checksum after data block and initates the transmission
-	}
+    if(ExternControl.Yaw >=60) ExternControl.Yaw=60;
+    if(ExternControl.Yaw <=-60) ExternControl.Yaw=-60;
 
-	void FlightControl::AddCRC(uint16_t datalen)
-	{
-		uint16_t tmpCRC = 0, i;
-		for(i = 0; i < datalen; i++)
-		{
-			tmpCRC += g_txd_buffer[i];
-		}
-		tmpCRC %= 4096;
-		g_txd_buffer[datalen++] = '=' + tmpCRC / 64;
-		g_txd_buffer[datalen++] = '=' + tmpCRC % 64;
-		g_txd_buffer[datalen++] = '\r';
-		serialInterface_->output(g_txd_buffer,datalen);
-	}
+    if(ExternControl.Throttle <= 0) ExternControl.Throttle =0;
 
-    void FlightControl::mikoCmdCallback(const cyphy_serial_driver::mikoCmd& msg)
-    {
-                  
-		 ExternControl.Pitch = msg.pitch;
-		 ExternControl.Roll = msg.roll;
-		 ExternControl.Yaw = msg.yaw;		 
-		 ExternControl.Throttle = msg.throttle;
 
-		 if(ExternControl.Pitch >=80) ExternControl.Pitch=80;
-		 if(ExternControl.Pitch <=-80) ExternControl.Pitch=-80;
+    //ROS_INFO (">>>> %d, %d, %d, %d",ExternControl.Pitch, ExternControl.Roll, ExternControl.Yaw, ExternControl.Throttle);
 
-		 if(ExternControl.Roll >=80) ExternControl.Roll=80;
-		 if(ExternControl.Roll <=-80) ExternControl.Roll=-80;
-		 
-		 if(ExternControl.Yaw >=60) ExternControl.Yaw=60;
-		 if(ExternControl.Yaw <=-60) ExternControl.Yaw=-60;
-
-		 if(ExternControl.Throttle <= 0) ExternControl.Throttle =0;
-
-		
-		 //ROS_INFO (">>>> %d, %d, %d, %d",ExternControl.Pitch, ExternControl.Roll, ExternControl.Yaw, ExternControl.Throttle);
-
-		 SendOutData('b', FC_ADDRESS, 1, (uint8_t*)&ExternControl, sizeof(ExternControl));
-		 		
-	}
+    mSerial->transmit(FC_ADDRESS, 'b', &ExternControl, sizeof(ExternControl));
+}

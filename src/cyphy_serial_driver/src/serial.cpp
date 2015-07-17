@@ -45,37 +45,26 @@ extern "C" {
   #include <fcntl.h>
 }
 
-static const std::string base64_chars = 
+/*static const std::string base64_chars =
              "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
              "abcdefghijklmnopqrstuvwxyz"
-             "0123456789+/";
-
-
-extern unsigned char g_ReceivedBytes;
-extern unsigned char *g_pRxData;
-extern unsigned char g_RxDataLen;
-extern unsigned char g_rxd_buffer[RXD_BUFFER_LEN];
-extern unsigned char g_buf_debug[300];
-extern struct str_Data3D g_Data3D,g_Data3D_Temp;
-extern DebugOut_t g_DebugData,g_DebugData_Temp;
-
+             "0123456789+/";*/
 
 MKSerialInterface::MKSerialInterface (std::string port, uint32_t speed):
-    serialport_name_ (port), serialport_speed_ (speed), mFramePos(0)
+    mPort(port), mSpeed(speed), mBaud(speed), mFramePos(0)
 {
     struct termios tio;
     status = false;
-    serialport_baud_ = bitrate (serialport_speed_);
     ROS_INFO ("Initializing serial port...");
 
-    dev_ = open(serialport_name_.c_str (),O_RDWR | O_NOCTTY | O_NDELAY);
-    ROS_DEBUG ("dev: %d", dev_);
-    ROS_ASSERT_MSG (dev_ != -1, "Failed to open serial port: %s %s", serialport_name_.c_str (), strerror (errno));
+    mDev = open(mPort.c_str (),O_RDWR | O_NOCTTY | O_NDELAY);
+    ROS_DEBUG ("dev: %d", mDev);
+    ROS_ASSERT_MSG (mDev != -1, "Failed to open serial port: %s %s", mPort.c_str (), strerror (errno));
 
-    ROS_ASSERT_MSG (tcgetattr (dev_, &tio) == 0, "Unknown Error: %s", strerror (errno));
+    ROS_ASSERT_MSG (tcgetattr (mDev, &tio) == 0, "Unknown Error: %s", strerror (errno));
 
-    cfsetispeed (&tio, serialport_baud_);
-    cfsetospeed (&tio, serialport_baud_);
+    cfsetispeed (&tio, mBaud);
+    cfsetospeed (&tio, mBaud);
 
     tio.c_iflag = 0;
     tio.c_iflag &= ~(BRKINT | ICRNL | IMAXBEL);
@@ -91,34 +80,29 @@ MKSerialInterface::MKSerialInterface (std::string port, uint32_t speed):
     tio.c_lflag |= NOFLSH;
     tio.c_lflag &= ~(ISIG | IEXTEN | ICANON | ECHO | ECHOE);
 
-    ROS_ASSERT_MSG (tcsetattr (dev_, TCSADRAIN, &tio) == 0, "Unknown Error: %s", strerror (errno));
+    ROS_ASSERT_MSG (tcsetattr (mDev, TCSADRAIN, &tio) == 0, "Unknown Error: %s", strerror (errno));
 
     tio.c_cc[VMIN] = 0;
     tio.c_cc[VTIME] = 0;
 
-    tcflush (dev_, TCIOFLUSH);
+    tcflush (mDev, TCIOFLUSH);
 
     Initialized=false;
 
-    ROS_ASSERT_MSG (dev_ != 0, "Could not open serial port %s", serialport_name_.c_str ());
-    ROS_INFO ("Successfully connected to %s, Baudrate %d\n", serialport_name_.c_str (), serialport_speed_);
+    ROS_ASSERT_MSG (mDev != 0, "Could not open serial port %s", mPort.c_str ());
+    ROS_INFO ("Successfully connected to %s, Baudrate %d\n", mPort.c_str (), mSpeed);
 }
 
 MKSerialInterface::~MKSerialInterface()
 {
     ROS_DEBUG ("Destroying Serial Interface");
-    flush ();
-    close (dev_);
+    flush();
+    close(mDev);
 }
-
-  void MKSerialInterface::flush ()
-  {
-    tcflush (dev_, TCIOFLUSH);
-  }
 
   void MKSerialInterface::drain ()
   {
-    ROS_ASSERT_MSG (tcdrain (dev_) == 0, "Drain Error: %s", strerror (errno));
+    ROS_ASSERT_MSG (tcdrain (mDev) == 0, "Drain Error: %s", strerror (errno));
   }
 
   int MKSerialInterface::wait (int bytes_requested)
@@ -126,9 +110,9 @@ MKSerialInterface::~MKSerialInterface()
     int bytes_available=0;
     unsigned int i=0;
 
-    while (bytes_available < bytes_requested)
+    while(bytes_available < bytes_requested)
     {
-      ioctl(dev_,FIONREAD,&bytes_available);
+      ioctl(mDev, FIONREAD, &bytes_available);
       usleep(1);
       if (i>650 && bytes_available < bytes_requested)
       {
@@ -155,37 +139,10 @@ speed_t MKSerialInterface::bitrate (int Bitrate)
     }
 }
 
-  void MKSerialInterface::output (char *output, int len)
-  {
-    int i;
-    ROS_DEBUG ("SerialInterface::output()");
-    serialport_bytes_tx_ += len;
-    i = write (dev_, output, len);
-    if (i != len)
-    {
-      ROS_ERROR ("Error wrote %d out of %d element(s): %s", i, len, strerror (errno));
-      ROS_BREAK ();
-    }
-    ROS_DEBUG ("Write completed");
-  }
-
-  void MKSerialInterface::output (unsigned char *output, int len)
-  {
-    int i;
-    ROS_DEBUG ("SerialInterface::output()");
-    serialport_bytes_tx_ += len;
-    i = write (dev_, output, len);
-    if (i != len)
-    {
-      ROS_ERROR ("Error wrote %d out of %d element(s): %s", i, len, strerror (errno));
-      ROS_BREAK ();
-    }
-  }
-
-void MKSerialInterface::read()
+void MKSerialInterface::receive()
 {
     uint8_t data[256];
-    ssize_t len = ::read(dev_, data, sizeof(data));
+    ssize_t len = ::read(mDev, data, sizeof(data));
     for(uint8_t * x = data, * e = data + len; x < e; x++) switch(uint8_t c = *x)
     {
     case '#':
@@ -223,16 +180,16 @@ void MKSerialInterface::read()
                 mFramePos = 0;
                 break;
             }
-            int size = Decode64(mFrame + 2, mFramePos - 2);
-            auto i = mDevices.find(mFrame[0]);
-            onReceive(mFrame[0], mFrame[1], mFrame + 2, size);
+            int size = decode64(mFrame + 2, mFramePos - 2);
+            auto i = mDevices.find(MKADDR(mFrame[0]));
+            i->second->onReceive(mFrame[1], mFrame + 2, size);
             mFramePos = 0;
         }
         break;
     }
 }
 
-int MKSerialInterface::Decode64(uint8_t * data, uint8_t * end)
+int MKSerialInterface::decode64(uint8_t * data, uint8_t * end)
 {
     uint8_t a,b,c,d;
     uint8_t x,y,z;
@@ -261,6 +218,56 @@ int MKSerialInterface::Decode64(uint8_t * data, uint8_t * end)
         *(dst++) = z;
     }
     return dst - data;
+}
+
+void MKSerialInterface::transmit(MKADDR addr, char cmd, const void * data, size_t size)
+{
+    uint8_t buf[256], a, b, c, * dst = buf + 3;
+    buf[0] = '#';
+    buf[1] = addr;
+    buf[2] = cmd;
+
+    for(const uint8_t * src = (const uint8_t *) data, * e = src + size; src < e; )
+    {
+        a = *(src++);
+        if(src < e)
+            b = *(src++);
+        else
+            b = 0;
+        if(src < e)
+            c = *(src++);
+        else
+            c = 0;
+
+        *(dst++) = '=' + (a >> 2);
+        *(dst++) = '=' + (((a & 0x03) << 4) | ((b & 0xf0) >> 4));
+        *(dst++) = '=' + (((b & 0x0f) << 2) | ((c & 0xc0) >> 6));
+        *(dst++) = '=' + ( c & 0x3f);
+        if(dst > buf + sizeof(buf) - 10)
+        {
+            ROS_FATAL("Too long packet to transmit");
+            return;
+        }
+    }
+    dst = addCRC(buf, dst);
+    *(dst++) = '\r';
+
+    int l = dst - buf, i = ::write(mDev, buf, l);
+    if(i != l)
+    {
+        ROS_ERROR("Error wrote %d out of %d element(s): %s", i, l, strerror (errno));
+        ROS_BREAK();
+    }
+}
+
+uint8_t * MKSerialInterface::addCRC(uint8_t * start, uint8_t * end)
+{
+    int crc = 0;
+    while(start < end) crc += *(start++);
+    crc &= 0xFFF;
+    *(start++) = '=' + (crc >> 6);
+    *(start++) = '=' + (crc & 0x3F);
+    return start;
 }
 
 

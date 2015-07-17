@@ -144,4 +144,12 @@ typedef struct
   double yaw;
 }__attribute__((packed)) DesiredPosition_t;
 
+enum MKADDR
+{
+    FC_ADDRESS      = 'b',
+    NC_ADDRESS      = 'c',
+    MK3MAG_ADDRESS  = 'd',
+    BL_CTRL_ADDRESS = 'f'
+};
+
 #endif // MKSTRUCT_H

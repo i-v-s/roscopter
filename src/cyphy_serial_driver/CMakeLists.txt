@@ -34,6 +34,8 @@ catkin_package(
 ## Build ##
 ###########
 
+add_definitions(-std=c++11)
+
 include_directories(include ${catkin_INCLUDE_DIRS})
 
 add_executable(MikoControl src/flightcontrol.cpp src/serial.cpp include/flightcontrol.h include/serial.h include/mkstruct.h)

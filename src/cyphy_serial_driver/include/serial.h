@@ -57,6 +57,7 @@ class MKDevice
 {
 protected:
     virtual void onReceive(char id, void * data, int size) = 0;
+    friend class MKSerialInterface;
 };
 
 class MKSerialInterface
@@ -67,13 +68,12 @@ public:
 
     void output(char *output, int len);
     void output(unsigned char *output, int len);
-    static int Decode64(uint8_t * data, uint8_t * end);
+    static int decode64(uint8_t * data, uint8_t * end);
     void ParsingData(void);
     void dumpDebug (void);
-    void read();
+    void receive();
+    void transmit(MKADDR addr, char cmd, const void * data, size_t size);
 
-    uint32_t serialport_bytes_rx_;
-    uint32_t serialport_bytes_tx_;
     int *scan;
     bool status;
     int pt[800];
@@ -81,19 +81,21 @@ public:
 
     bool Initialized;
     int count;
-    std::map<char, MKDevice *> mDevices;
+    std::map<MKADDR, MKDevice *> mDevices;
 private:
     uint8_t mFrame[128], * mFramePos;
     int mCRC;
     speed_t bitrate(int);
-    void flush ();
+    inline void flush () { tcflush(mDev, TCIOFLUSH);}
+    static uint8_t * addCRC(uint8_t * start, uint8_t * end);
+
     void drain ();
     void stall (bool);
     int wait (int);
 
-    int dev_;
-    std::string serialport_name_;
-    uint32_t serialport_speed_;
-    speed_t serialport_baud_;
+    int mDev;
+    std::string mPort;
+    uint32_t mSpeed;
+    speed_t mBaud;
   };
 #endif

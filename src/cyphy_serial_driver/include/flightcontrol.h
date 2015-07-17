@@ -56,64 +56,54 @@
 #define YES 1
 #define NO 0
 
-#define FC_ADDRESS 2
-
-
-
 class FlightControl: public MKDevice
 {
 private:
-
-      ros::Timer timer_;
     
-      double freq_;
-      std::string port_;
-      int speed_;
-      bool Throttle_Direction;
+    bool Throttle_Direction;
 
-
-    ros::Publisher pub;         //mikoImu pub
-    ros::Publisher pub_stdImu;  //sensors_msgs::Imu pub
+    ros::Publisher mPub;         //mikoImu pub
+    ros::Publisher mPub_stdImu;  //sensors_msgs::Imu pub
 
     sensor_msgs::Imu stdImuMsg;
     tf::Quaternion tfImuQuaternion;
     geometry_msgs::Quaternion geometryImuQuaternion;
 
     //ros::Publisher pub_pose2D;
-
     
     uint64_t time;
     
     DesiredPosition_t DesiredPosition;
     Attitude_t MyAttitude;
     void publishData(const DebugOut_t &data);
+    MKSerialInterface * mSerial;
+    DebugOut_t mDebugData;
+    struct str_Data3D mData3D;
 
 protected:
     virtual void onReceive(char id, void * data, int size);
 
 public:
-      MKSerialInterface* serialInterface_;
+    MKSerialInterface* serialInterface_;
 
-      FILE *fd,*fd_h,*fd_debug;
-      cyphy_serial_driver::mikoImu mikoImu;
-      ros::Time last_time;
-      ros::Time last_time_;
-      ros::Time current_time;
-      ros::Time current_time_;
+    FILE *fd,*fd_h,*fd_debug;
+    cyphy_serial_driver::mikoImu mikoImu;
+    ros::Time last_time;
+    ros::Time last_time_;
+    ros::Time current_time;
+    ros::Time current_time_;
 
-      ExternControl_t	ExternControl;
-      ros::Subscriber mikoCmdSubscriber;
-      int myYawAngle;
+    ExternControl_t	ExternControl;
+    ros::Subscriber mikoCmdSubscriber;
+    int myYawAngle;
 
-      FlightControl ();
-      virtual ~FlightControl();
-      void AddCRC(uint16_t datelen);
-      void SendOutData(uint8_t cmd, uint8_t addr, uint8_t numofbuffers, ...);
-      void enablePolling (uint16_t request, uint16_t interval);
-      void spin (const ros::TimerEvent & e);
-      void mikoCmdCallback (const cyphy_serial_driver::mikoCmd& msg);
-      
-      unsigned long long time_helper(void);
+    FlightControl(ros::NodeHandle &nh, MKSerialInterface * serial);
+    virtual ~FlightControl();
+    void enablePolling (uint16_t request, uint16_t interval);
+    void spin();
+    void mikoCmdCallback (const cyphy_serial_driver::mikoCmd& msg);
+
+    unsigned long long time_helper(void);
 }; // end class FlightControl
 
 #endif
