@@ -1,3 +1,6 @@
+#Warning: this project is under development and cannot be used now.
+Please reference to https://github.com/CrocInc/uav-croc-contest-2013
+
 croc-uav-contest-2013
 =====================
 
